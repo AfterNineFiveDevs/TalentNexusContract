@@ -1,0 +1,21 @@
+{
+  "name": "@talent-nexus/contracts",
+  "version": "0.0.1",
+  "private": false,
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/**/*.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0"
+  }
+}
