@@ -1,0 +1,55 @@
+name: Publish staging release
+
+on:
+  pull_request:
+    branches: [staging]
+    types: [closed]
+
+permissions:
+  contents: write
+
+jobs:
+  resolve-version:
+    if: >-
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'feature/')
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+      - id: version
+        env:
+          SOURCE_BRANCH: ${{ github.event.pull_request.head.ref }}
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          DEV_TAG=""
+          for tag in $(git tag -l 'v*-dev.*' --sort=-version:refname); do
+            metadata="$(git tag -l --format='%(contents)' "$tag")"
+            if grep -Fxq "source_branch=$SOURCE_BRANCH" <<< "$metadata" && grep -Fxq "source_sha=$SOURCE_SHA" <<< "$metadata"; then
+              DEV_TAG="$tag"
+              break
+            fi
+          done
+          [[ -n "$DEV_TAG" ]] || { echo "No dev release tag matches this feature head." >&2; exit 1; }
+          BASE="$(sed -E 's/^v([0-9]+\.[0-9]+\.[0-9]+)-dev\.[0-9]+$/\1/' <<< "$DEV_TAG")"
+          git rev-parse -q --verify "refs/tags/v$BASE" >/dev/null && { echo "Stable version $BASE already exists." >&2; exit 1; }
+          NEXT="$(git tag -l "v$BASE-pre.*" | sed -nE "s/^v$BASE-pre\.([0-9]+)$/\1/p" | sort -n | tail -n 1)"
+          echo "version=$BASE-pre.$(( ${NEXT:-0} + 1 ))" >> "$GITHUB_OUTPUT"
+  publish:
+    needs: resolve-version
+    uses: ./.github/workflows/npm-publish.yml
+    with:
+      channel: staging
+      version: ${{ needs.resolve-version.outputs.version }}
+      npm_dist_tag: pre
+      target_branch: staging
+      target_sha: ${{ github.event.pull_request.merge_commit_sha }}
+      source_branch: ${{ github.event.pull_request.head.ref }}
+      source_sha: ${{ github.event.pull_request.head.sha }}
+    secrets:
+      npm_token: ${{ secrets.NPM_TOKEN }}

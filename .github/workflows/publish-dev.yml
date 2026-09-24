@@ -1,0 +1,56 @@
+name: Publish dev release
+
+on:
+  pull_request:
+    branches: [dev]
+    types: [closed]
+
+permissions:
+  contents: write
+
+jobs:
+  resolve-version:
+    if: >-
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'feature/')
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+      - id: version
+        env:
+          LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+        run: |
+          set -euo pipefail
+          LABEL_COUNT="$(jq '[.[] | select(test("^release:(major|minor|patch)$"))] | length' <<< "$LABELS")"
+          [[ "$LABEL_COUNT" == "1" ]] || { echo "Add exactly one release:major, release:minor, or release:patch label." >&2; exit 1; }
+          BUMP="$(jq -r '.[] | select(test("^release:(major|minor|patch)$")) | split(":")[1]' <<< "$LABELS")"
+          LATEST="$(git tag -l 'v*' --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1 || true)"
+          LATEST="${LATEST:-v0.0.0}"
+          IFS=. read -r MAJOR MINOR PATCH <<< "${LATEST#v}"
+          case "$BUMP" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+          BASE="$MAJOR.$MINOR.$PATCH"
+          NEXT="$(git tag -l "v$BASE-dev.*" | sed -nE "s/^v$BASE-dev\.([0-9]+)$/\1/p" | sort -n | tail -n 1)"
+          NEXT="$(( ${NEXT:-0} + 1 ))"
+          echo "version=$BASE-dev.$NEXT" >> "$GITHUB_OUTPUT"
+  publish:
+    needs: resolve-version
+    uses: ./.github/workflows/npm-publish.yml
+    with:
+      channel: dev
+      version: ${{ needs.resolve-version.outputs.version }}
+      npm_dist_tag: dev
+      target_branch: dev
+      target_sha: ${{ github.event.pull_request.merge_commit_sha }}
+      source_branch: ${{ github.event.pull_request.head.ref }}
+      source_sha: ${{ github.event.pull_request.head.sha }}
+    secrets:
+      npm_token: ${{ secrets.NPM_TOKEN }}

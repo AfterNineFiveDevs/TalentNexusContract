@@ -1,0 +1,142 @@
+name: Reusable npm publish
+
+on:
+  workflow_call:
+    inputs:
+      channel:
+        description: Release channel (dev, staging, or main)
+        required: true
+        type: string
+      version:
+        description: Exact npm semantic version to publish
+        required: true
+        type: string
+      npm_dist_tag:
+        description: npm dist-tag to assign
+        required: true
+        type: string
+      target_branch:
+        description: Branch that received the merged pull request
+        required: true
+        type: string
+      target_sha:
+        description: Merge commit SHA on the target branch
+        required: true
+        type: string
+      source_branch:
+        description: Feature branch used as the pull request source
+        required: true
+        type: string
+      source_sha:
+        description: Feature branch head SHA used by the pull request
+        required: true
+        type: string
+    secrets:
+      npm_token:
+        required: true
+    outputs:
+      version:
+        description: Published npm version
+        value: ${{ jobs.publish.outputs.version }}
+      tag:
+        description: Annotated Git tag for the release
+        value: ${{ jobs.publish.outputs.tag }}
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - name: Validate release inputs
+        env:
+          CHANNEL: ${{ inputs.channel }}
+          VERSION: ${{ inputs.version }}
+          NPM_TAG: ${{ inputs.npm_dist_tag }}
+          TARGET_BRANCH: ${{ inputs.target_branch }}
+        run: |
+          set -euo pipefail
+          case "$CHANNEL" in
+            dev)
+              [[ "$TARGET_BRANCH" == "dev" && "$NPM_TAG" == "dev" ]]
+              [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-dev\.[1-9][0-9]*$ ]]
+              ;;
+            staging)
+              [[ "$TARGET_BRANCH" == "staging" && "$NPM_TAG" == "pre" ]]
+              [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-pre\.[1-9][0-9]*$ ]]
+              ;;
+            main)
+              [[ "$TARGET_BRANCH" == "main" && "$NPM_TAG" == "latest" ]]
+              [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+              ;;
+            *) echo "Unsupported channel: $CHANNEL" >&2; exit 1 ;;
+          esac
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Set the package version and validate the archive
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          npm version "$VERSION" --no-git-tag-version --ignore-scripts
+          npm pack --dry-run
+      - name: Create or validate the release tag
+        id: release
+        env:
+          CHANNEL: ${{ inputs.channel }}
+          VERSION: ${{ inputs.version }}
+          TARGET_BRANCH: ${{ inputs.target_branch }}
+          SOURCE_BRANCH: ${{ inputs.source_branch }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          set -euo pipefail
+          TAG="v$VERSION"
+          HEAD_SHA="$(git rev-parse HEAD)"
+          MESSAGE_FILE="$(mktemp)"
+          {
+            echo "channel=$CHANNEL"
+            echo "target_branch=$TARGET_BRANCH"
+            echo "source_branch=$SOURCE_BRANCH"
+            echo "source_sha=$SOURCE_SHA"
+            echo "version=$VERSION"
+          } > "$MESSAGE_FILE"
+
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            [[ "$(git rev-list -n 1 "$TAG")" == "$HEAD_SHA" ]]
+            git tag -l --format='%(contents)' "$TAG" > "$MESSAGE_FILE.existing"
+            cmp --silent "$MESSAGE_FILE" "$MESSAGE_FILE.existing"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "$TAG" -F "$MESSAGE_FILE"
+            git push origin "$TAG"
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.npm_token }}
+          NPM_TAG: ${{ inputs.npm_dist_tag }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          PACKAGE_NAME="$(node -p "require('./package.json').name")"
+          if npm view "$PACKAGE_NAME@$VERSION" version >/dev/null 2>&1; then
+            echo "$PACKAGE_NAME@$VERSION already exists; skipping publish."
+          else
+            npm publish --access public --tag "$NPM_TAG"
+          fi
