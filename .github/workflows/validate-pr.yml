@@ -19,6 +19,7 @@ jobs:
       - name: Validate promotion policy
         env:
           HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
           TARGET_BRANCH: ${{ github.event.pull_request.base.ref }}
           LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
         run: |
@@ -37,6 +38,28 @@ jobs:
               LABEL_COUNT="$(jq '[.[] | select(test("^release:(major|minor|patch)$"))] | length' <<< "$LABELS")"
               [[ "$LABEL_COUNT" == "1" ]] || { echo "The first dev promotion requires exactly one release:major, release:minor, or release:patch label." >&2; exit 1; }
             fi
+          fi
+          if [[ "$TARGET_BRANCH" == "staging" ]]; then
+            HAS_DEV_RELEASE=false
+            for tag in $(git tag -l 'v*-dev.*'); do
+              metadata="$(git tag -l --format='%(contents)' "$tag")"
+              if grep -Fxq "source_branch=$HEAD_BRANCH" <<< "$metadata" && grep -Fxq "source_sha=$SOURCE_SHA" <<< "$metadata"; then
+                HAS_DEV_RELEASE=true
+                break
+              fi
+            done
+            [[ "$HAS_DEV_RELEASE" == true ]] || { echo "Staging promotion requires a matching dev release for this feature head." >&2; exit 1; }
+          fi
+          if [[ "$TARGET_BRANCH" == "main" ]]; then
+            HAS_STAGING_RELEASE=false
+            for tag in $(git tag -l 'v*-pre.*'); do
+              metadata="$(git tag -l --format='%(contents)' "$tag")"
+              if grep -Fxq "source_branch=$HEAD_BRANCH" <<< "$metadata" && grep -Fxq "source_sha=$SOURCE_SHA" <<< "$metadata"; then
+                HAS_STAGING_RELEASE=true
+                break
+              fi
+            done
+            [[ "$HAS_STAGING_RELEASE" == true ]] || { echo "Main promotion requires a matching staging release for this feature head." >&2; exit 1; }
           fi
       - uses: actions/setup-node@v4
         with:
