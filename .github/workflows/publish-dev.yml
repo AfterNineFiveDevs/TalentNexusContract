@@ -3,6 +3,12 @@ name: Publish dev release
 on:
   push:
     branches: [dev]
+  workflow_dispatch:
+    inputs:
+      merge_sha:
+        description: Existing dev merge commit SHA to recover
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -15,10 +21,11 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       source_branch: ${{ steps.source.outputs.source_branch }}
       source_sha: ${{ steps.source.outputs.source_sha }}
+      target_sha: ${{ steps.source.outputs.target_sha }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ inputs.merge_sha || github.sha }}
           fetch-depth: 0
       - name: Identify the locally merged feature branch
         id: source
@@ -28,9 +35,11 @@ jobs:
           [[ "${#PARENTS[@]}" == "3" ]] || { echo "A promotion push must be a non-fast-forward merge commit." >&2; exit 1; }
           SUBJECT="$(git log -1 --format=%s)"
           SOURCE_BRANCH="$(sed -nE "s/^Merge branch '(feature\/[^']+)' into dev$/\1/p" <<< "$SUBJECT")"
-          [[ -n "$SOURCE_BRANCH" ]] || { echo "Use: git merge --no-ff feature/{developer}/{work} while on dev." >&2; exit 1; }
+          SOURCE_BRANCH="${SOURCE_BRANCH:-$(sed -nE 's/^Merge pull request #[0-9]+ from [^/]+\/(feature\/[^ ]+)$/\1/p' <<< "$SUBJECT")}"
+          [[ -n "$SOURCE_BRANCH" ]] || { echo "Merge a feature/* branch with a merge commit." >&2; exit 1; }
           echo "source_branch=$SOURCE_BRANCH" >> "$GITHUB_OUTPUT"
           echo "source_sha=${PARENTS[2]}" >> "$GITHUB_OUTPUT"
+          echo "target_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - id: version
         env:
           GH_TOKEN: ${{ github.token }}
@@ -74,7 +83,7 @@ jobs:
       version: ${{ needs.resolve-version.outputs.version }}
       npm_dist_tag: dev
       target_branch: dev
-      target_sha: ${{ github.sha }}
+      target_sha: ${{ needs.resolve-version.outputs.target_sha }}
       source_branch: ${{ needs.resolve-version.outputs.source_branch }}
       source_sha: ${{ needs.resolve-version.outputs.source_sha }}
     secrets:
