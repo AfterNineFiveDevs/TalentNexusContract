@@ -10,7 +10,7 @@
 
 Promote the same feature branch in this order:
 
-1. Open `feature/...` to `dev`. Add exactly one label: `release:major`, `release:minor`, or `release:patch`.
+1. Open `feature/...` to `dev`. Its first dev promotion needs exactly one label: `release:major`, `release:minor`, or `release:patch`. Later dev promotions from the same feature branch reuse the chosen base version and do not need a release label.
 2. After the dev pull request is merged, validated, and published, open that same feature branch to `staging`.
 3. After the staging pull request is merged, validated, and published, open that same feature branch to `main`.
 
@@ -28,9 +28,11 @@ The merged-PR workflow creates annotated Git tags and sets the package version o
 | `staging` | `X.Y.Z-pre.N` | `pre` |
 | `main` | `X.Y.Z` | `latest` |
 
-The `dev` PR label determines its major, minor, or patch base-version bump from the newest stable tag. The matching staging and stable publications retain that same base version. Numeric prerelease suffixes make repeated npm publishes unique.
+The first dev PR for a feature branch uses its label to determine the major, minor, or patch base-version bump from the highest released base version, including dev and staging prereleases. Later dev PRs from that branch retain the first base version and only increment its numeric prerelease suffix: `X.Y.Z-dev.1`, `X.Y.Z-dev.2`, and so on. The matching staging and stable publications retain that same base version.
 
 Each release tag records its source branch and source head SHA. This is how the staging and main workflows verify that the feature has passed through the prior environment without merging environment branches back into the feature branch.
+
+The release workflow explicitly assigns the npm dist-tag after publishing, including on a retry. Therefore `npm install @talent-nexus/contracts@dev`, `@pre`, and the unqualified package name resolve to the version for their respective channel.
 
 ## GitHub configuration
 
