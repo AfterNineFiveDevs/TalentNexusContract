@@ -29,9 +29,9 @@ jobs:
           LABEL_COUNT="$(jq '[.[] | select(test("^release:(major|minor|patch)$"))] | length' <<< "$LABELS")"
           [[ "$LABEL_COUNT" == "1" ]] || { echo "Add exactly one release:major, release:minor, or release:patch label." >&2; exit 1; }
           BUMP="$(jq -r '.[] | select(test("^release:(major|minor|patch)$")) | split(":")[1]' <<< "$LABELS")"
-          LATEST="$(git tag -l 'v*' --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1 || true)"
-          LATEST="${LATEST:-v0.0.0}"
-          IFS=. read -r MAJOR MINOR PATCH <<< "${LATEST#v}"
+          LATEST_BASE="$(git tag -l 'v*' | sed -nE 's/^v([0-9]+\.[0-9]+\.[0-9]+)(-(dev|pre)\.[0-9]+)?$/\1/p' | sort -V | tail -n 1)"
+          LATEST_BASE="${LATEST_BASE:-0.0.0}"
+          IFS=. read -r MAJOR MINOR PATCH <<< "$LATEST_BASE"
           case "$BUMP" in
             major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
             minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
