@@ -91,7 +91,7 @@ jobs:
           VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
-          npm version "$VERSION" --no-git-tag-version --ignore-scripts
+          npm version "$VERSION" --no-git-tag-version --ignore-scripts --allow-same-version
           npm pack --dry-run
       - name: Create or validate the release tag
         id: release

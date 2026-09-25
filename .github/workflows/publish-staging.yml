@@ -1,30 +1,39 @@
 name: Publish staging release
 
 on:
-  pull_request:
+  push:
     branches: [staging]
-    types: [closed]
 
 permissions:
   contents: write
 
 jobs:
   resolve-version:
-    if: >-
-      github.event.pull_request.merged == true &&
-      startsWith(github.event.pull_request.head.ref, 'feature/')
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
+      source_branch: ${{ steps.source.outputs.source_branch }}
+      source_sha: ${{ steps.source.outputs.source_sha }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
+      - name: Identify the locally merged feature branch
+        id: source
+        run: |
+          set -euo pipefail
+          read -r -a PARENTS <<< "$(git rev-list --parents -n 1 HEAD)"
+          [[ "${#PARENTS[@]}" == "3" ]] || { echo "A promotion push must be a non-fast-forward merge commit." >&2; exit 1; }
+          SUBJECT="$(git log -1 --format=%s)"
+          SOURCE_BRANCH="$(sed -nE "s/^Merge branch '(feature\/[^']+)' into staging$/\1/p" <<< "$SUBJECT")"
+          [[ -n "$SOURCE_BRANCH" ]] || { echo "Use: git merge --no-ff feature/{developer}/{work} while on staging." >&2; exit 1; }
+          echo "source_branch=$SOURCE_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "source_sha=${PARENTS[2]}" >> "$GITHUB_OUTPUT"
       - id: version
         env:
-          SOURCE_BRANCH: ${{ github.event.pull_request.head.ref }}
-          SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+          SOURCE_BRANCH: ${{ steps.source.outputs.source_branch }}
+          SOURCE_SHA: ${{ steps.source.outputs.source_sha }}
         run: |
           set -euo pipefail
           DEV_TAG=""
@@ -48,8 +57,8 @@ jobs:
       version: ${{ needs.resolve-version.outputs.version }}
       npm_dist_tag: pre
       target_branch: staging
-      target_sha: ${{ github.event.pull_request.merge_commit_sha }}
-      source_branch: ${{ github.event.pull_request.head.ref }}
-      source_sha: ${{ github.event.pull_request.head.sha }}
+      target_sha: ${{ github.sha }}
+      source_branch: ${{ needs.resolve-version.outputs.source_branch }}
+      source_sha: ${{ needs.resolve-version.outputs.source_sha }}
     secrets:
       npm_token: ${{ secrets.NPM_TOKEN }}
