@@ -1,3 +1,10 @@
+import type { ZodType } from 'zod';
+
+/** Runtime DTO classes expose a Zod schema for Nest's global validation pipe. */
+export interface ZodDtoClass<TOutput = unknown> {
+  readonly schema: ZodType<TOutput>;
+}
+
 /** Values accepted in URL query parameters. */
 export type QueryValue = string | number | boolean | null | undefined;
 
