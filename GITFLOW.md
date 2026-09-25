@@ -32,6 +32,8 @@ The `dev` PR label determines its major, minor, or patch base-version bump from 
 
 Each release tag records its source branch and source head SHA. This is how the staging and main workflows verify that the feature has passed through the prior environment without merging environment branches back into the feature branch.
 
+The release workflow explicitly assigns the npm dist-tag after publishing, including on a retry. Therefore `npm install @talent-nexus/contracts@dev`, `@pre`, and the unqualified package name resolve to the version for their respective channel.
+
 ## GitHub configuration
 
 Protect `dev`, `staging`, and `main` with pull requests required, the **Build package** status check required, and merge commits as the permitted merge method. Restrict direct pushes to these branches.
