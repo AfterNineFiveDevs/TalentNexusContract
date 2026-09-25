@@ -140,3 +140,4 @@ jobs:
           else
             npm publish --access public --tag "$NPM_TAG"
           fi
+          npm dist-tag add "$PACKAGE_NAME@$VERSION" "$NPM_TAG"
