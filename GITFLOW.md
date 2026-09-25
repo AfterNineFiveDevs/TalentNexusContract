@@ -49,6 +49,8 @@ Each release tag records its source branch and the second parent of the local me
 
 The release workflow explicitly assigns the npm dist-tag after publishing, including on a retry. Therefore `npm install @talent-nexus/contracts@dev`, `@pre`, and the unqualified package name resolve to the version for their respective channel.
 
+If a target-branch release fails after the merge has been pushed, open the matching release workflow in GitHub Actions, choose **Run workflow**, select its target branch, and enter the failed merge commit SHA. The recovery run validates the original merge commit and publishes the same promotion without another branch merge.
+
 ## GitHub configuration
 
 The promotion workflow intentionally requires direct pushes of local merge commits to `dev`, `staging`, and `main`. Do not enable a branch rule that requires GitHub PR merges for these branches. Instead, restrict direct push permission to approved promotors, block force pushes and deletions, and allow merge commits only. The release workflow builds the pushed target branch and publishes only when that build succeeds.

@@ -3,6 +3,12 @@ name: Publish staging release
 on:
   push:
     branches: [staging]
+  workflow_dispatch:
+    inputs:
+      merge_sha:
+        description: Existing staging merge commit SHA to recover
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -14,10 +20,11 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       source_branch: ${{ steps.source.outputs.source_branch }}
       source_sha: ${{ steps.source.outputs.source_sha }}
+      target_sha: ${{ steps.source.outputs.target_sha }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ inputs.merge_sha || github.sha }}
           fetch-depth: 0
       - name: Identify the locally merged feature branch
         id: source
@@ -31,6 +38,7 @@ jobs:
           [[ -n "$SOURCE_BRANCH" ]] || { echo "Merge a feature/* branch with a merge commit." >&2; exit 1; }
           echo "source_branch=$SOURCE_BRANCH" >> "$GITHUB_OUTPUT"
           echo "source_sha=${PARENTS[2]}" >> "$GITHUB_OUTPUT"
+          echo "target_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - id: version
         env:
           SOURCE_BRANCH: ${{ steps.source.outputs.source_branch }}
@@ -58,7 +66,7 @@ jobs:
       version: ${{ needs.resolve-version.outputs.version }}
       npm_dist_tag: pre
       target_branch: staging
-      target_sha: ${{ github.sha }}
+      target_sha: ${{ needs.resolve-version.outputs.target_sha }}
       source_branch: ${{ needs.resolve-version.outputs.source_branch }}
       source_sha: ${{ needs.resolve-version.outputs.source_sha }}
     secrets:
