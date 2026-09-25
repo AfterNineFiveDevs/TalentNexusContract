@@ -27,16 +27,18 @@ jobs:
           [[ "$HEAD_BRANCH" == feature/* ]] || { echo "Only feature/* branches may target environment branches." >&2; exit 1; }
           if [[ "$TARGET_BRANCH" == "dev" ]]; then
             HAS_DEV_RELEASE=false
+            DEV_BASE=""
             for tag in $(git tag -l 'v*-dev.*'); do
               metadata="$(git tag -l --format='%(contents)' "$tag")"
               if grep -Fxq "source_branch=$HEAD_BRANCH" <<< "$metadata"; then
                 HAS_DEV_RELEASE=true
+                DEV_BASE="$(sed -E 's/^v([0-9]+\.[0-9]+\.[0-9]+)-dev\.[0-9]+$/\1/' <<< "$tag")"
                 break
               fi
             done
-            if [[ "$HAS_DEV_RELEASE" == false ]]; then
+            if [[ "$HAS_DEV_RELEASE" == false ]] || git rev-parse -q --verify "refs/tags/v$DEV_BASE" >/dev/null; then
               LABEL_COUNT="$(jq '[.[] | select(test("^release:(major|minor|patch)$"))] | length' <<< "$LABELS")"
-              [[ "$LABEL_COUNT" == "1" ]] || { echo "The first dev promotion requires exactly one release:major, release:minor, or release:patch label." >&2; exit 1; }
+              [[ "$LABEL_COUNT" == "1" ]] || { echo "This dev promotion requires exactly one release:major, release:minor, or release:patch label." >&2; exit 1; }
             fi
           fi
           if [[ "$TARGET_BRANCH" == "staging" ]]; then
