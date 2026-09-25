@@ -28,7 +28,7 @@ The merged-PR workflow creates annotated Git tags and sets the package version o
 | `staging` | `X.Y.Z-pre.N` | `pre` |
 | `main` | `X.Y.Z` | `latest` |
 
-The `dev` PR label determines its major, minor, or patch base-version bump from the newest stable tag. The matching staging and stable publications retain that same base version. Numeric prerelease suffixes make repeated npm publishes unique.
+The `dev` PR label determines its major, minor, or patch base-version bump from the highest released base version, including dev and staging prereleases. The matching staging and stable publications retain that same base version. Numeric prerelease suffixes make repeated npm publishes unique.
 
 Each release tag records its source branch and source head SHA. This is how the staging and main workflows verify that the feature has passed through the prior environment without merging environment branches back into the feature branch.
 
