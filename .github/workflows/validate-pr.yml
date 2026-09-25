@@ -13,6 +13,9 @@ jobs:
     name: Build package
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Validate promotion policy
         env:
           HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
@@ -22,10 +25,19 @@ jobs:
           set -euo pipefail
           [[ "$HEAD_BRANCH" == feature/* ]] || { echo "Only feature/* branches may target environment branches." >&2; exit 1; }
           if [[ "$TARGET_BRANCH" == "dev" ]]; then
-            LABEL_COUNT="$(jq '[.[] | select(test("^release:(major|minor|patch)$"))] | length' <<< "$LABELS")"
-            [[ "$LABEL_COUNT" == "1" ]] || { echo "Dev promotions require exactly one release:major, release:minor, or release:patch label." >&2; exit 1; }
+            HAS_DEV_RELEASE=false
+            for tag in $(git tag -l 'v*-dev.*'); do
+              metadata="$(git tag -l --format='%(contents)' "$tag")"
+              if grep -Fxq "source_branch=$HEAD_BRANCH" <<< "$metadata"; then
+                HAS_DEV_RELEASE=true
+                break
+              fi
+            done
+            if [[ "$HAS_DEV_RELEASE" == false ]]; then
+              LABEL_COUNT="$(jq '[.[] | select(test("^release:(major|minor|patch)$"))] | length' <<< "$LABELS")"
+              [[ "$LABEL_COUNT" == "1" ]] || { echo "The first dev promotion requires exactly one release:major, release:minor, or release:patch label." >&2; exit 1; }
+            fi
           fi
-      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
