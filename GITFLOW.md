@@ -25,7 +25,7 @@ git merge --no-ff feature/{dev_name}/{work-name}
 git push origin dev
 ```
 
-Do not change the default merge subject. It must remain `Merge branch 'feature/{dev_name}/{work-name}' into {target}` so the release workflow can identify the feature branch and its commit.
+Do not change the default local merge subject. It must remain `Merge branch 'feature/{dev_name}/{work-name}' into {target}` so the release workflow can identify the feature branch and its commit. GitHub merge commits are also supported when **Merge** is the selected method; squash and rebase merges are not.
 
 Never merge, rebase, or pull `dev`, `staging`, or `main` into a feature branch. If a conflict occurs, resolve it during the local target-branch merge, then push that target branch. Do not resolve conflicts in GitHub's web interface.
 

@@ -27,7 +27,8 @@ jobs:
           [[ "${#PARENTS[@]}" == "3" ]] || { echo "A promotion push must be a non-fast-forward merge commit." >&2; exit 1; }
           SUBJECT="$(git log -1 --format=%s)"
           SOURCE_BRANCH="$(sed -nE "s/^Merge branch '(feature\/[^']+)' into staging$/\1/p" <<< "$SUBJECT")"
-          [[ -n "$SOURCE_BRANCH" ]] || { echo "Use: git merge --no-ff feature/{developer}/{work} while on staging." >&2; exit 1; }
+          SOURCE_BRANCH="${SOURCE_BRANCH:-$(sed -nE 's/^Merge pull request #[0-9]+ from [^/]+\/(feature\/[^ ]+)$/\1/p' <<< "$SUBJECT")}"
+          [[ -n "$SOURCE_BRANCH" ]] || { echo "Merge a feature/* branch with a merge commit." >&2; exit 1; }
           echo "source_branch=$SOURCE_BRANCH" >> "$GITHUB_OUTPUT"
           echo "source_sha=${PARENTS[2]}" >> "$GITHUB_OUTPUT"
       - id: version
