@@ -11,8 +11,8 @@
 Open a PR for review and validation, but perform every promotion locally so target-branch changes never enter the feature branch. Promote the same feature branch in this order:
 
 1. Open `feature/...` to `dev`. Its first dev PR needs exactly one label: `release:major`, `release:minor`, or `release:patch`. Wait for **Build package** to pass, then merge locally and push `dev`.
-2. After the dev package publishes, open that same feature branch to `staging`. Wait for **Build package** to pass, then merge locally and push `staging`.
-3. After the staging package publishes, open that same feature branch to `main`. Wait for **Build package** to pass, then merge locally and push `main`.
+2. After the dev package publishes, open that same feature branch to `staging`. **Build package** verifies its matching dev release before passing; then merge locally and push `staging`.
+3. After the staging package publishes, open that same feature branch to `main`. **Build package** verifies its matching staging release before passing; then merge locally and push `main`.
 
 Use these commands for each target branch, replacing `dev` with `staging` or `main` at the appropriate promotion step:
 
