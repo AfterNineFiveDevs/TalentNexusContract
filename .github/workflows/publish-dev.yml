@@ -1,30 +1,50 @@
 name: Publish dev release
 
 on:
-  pull_request:
+  push:
     branches: [dev]
-    types: [closed]
+  workflow_dispatch:
+    inputs:
+      merge_sha:
+        description: Existing dev merge commit SHA to recover
+        required: true
+        type: string
 
 permissions:
   contents: write
+  pull-requests: read
 
 jobs:
   resolve-version:
-    if: >-
-      github.event.pull_request.merged == true &&
-      startsWith(github.event.pull_request.head.ref, 'feature/')
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
+      source_branch: ${{ steps.source.outputs.source_branch }}
+      source_sha: ${{ steps.source.outputs.source_sha }}
+      target_sha: ${{ steps.source.outputs.target_sha }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          ref: ${{ inputs.merge_sha || github.sha }}
           fetch-depth: 0
+      - name: Identify the locally merged feature branch
+        id: source
+        run: |
+          set -euo pipefail
+          read -r -a PARENTS <<< "$(git rev-list --parents -n 1 HEAD)"
+          [[ "${#PARENTS[@]}" == "3" ]] || { echo "A promotion push must be a non-fast-forward merge commit." >&2; exit 1; }
+          SUBJECT="$(git log -1 --format=%s)"
+          SOURCE_BRANCH="$(sed -nE "s/^Merge branch '(feature\/[^']+)' into dev$/\1/p" <<< "$SUBJECT")"
+          SOURCE_BRANCH="${SOURCE_BRANCH:-$(sed -nE 's/^Merge pull request #[0-9]+ from [^/]+\/(feature\/[^ ]+)$/\1/p' <<< "$SUBJECT")}"
+          [[ -n "$SOURCE_BRANCH" ]] || { echo "Merge a feature/* branch with a merge commit." >&2; exit 1; }
+          echo "source_branch=$SOURCE_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "source_sha=${PARENTS[2]}" >> "$GITHUB_OUTPUT"
+          echo "target_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - id: version
         env:
-          LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
-          SOURCE_BRANCH: ${{ github.event.pull_request.head.ref }}
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_BRANCH: ${{ steps.source.outputs.source_branch }}
+          SOURCE_SHA: ${{ steps.source.outputs.source_sha }}
         run: |
           set -euo pipefail
           BASE=""
@@ -37,8 +57,10 @@ jobs:
           done
 
           if [[ -z "$BASE" ]]; then
+            PULLS="$(gh api "repos/$GITHUB_REPOSITORY/pulls?state=all&head=$GITHUB_REPOSITORY_OWNER:$SOURCE_BRANCH&base=dev&per_page=100")"
+            LABELS="$(jq -c --arg sha "$SOURCE_SHA" '[.[] | select(.head.sha == $sha) | .labels[]?.name] | unique' <<< "$PULLS")"
             LABEL_COUNT="$(jq '[.[] | select(test("^release:(major|minor|patch)$"))] | length' <<< "$LABELS")"
-            [[ "$LABEL_COUNT" == "1" ]] || { echo "The first dev promotion requires exactly one release:major, release:minor, or release:patch label." >&2; exit 1; }
+            [[ "$LABEL_COUNT" == "1" ]] || { echo "The source pull request needs exactly one release:major, release:minor, or release:patch label." >&2; exit 1; }
             BUMP="$(jq -r '.[] | select(test("^release:(major|minor|patch)$")) | split(":")[1]' <<< "$LABELS")"
             LATEST_BASE="$(git tag -l 'v*' | sed -nE 's/^v([0-9]+\.[0-9]+\.[0-9]+)(-(dev|pre)\.[0-9]+)?$/\1/p' | sort -V | tail -n 1)"
             LATEST_BASE="${LATEST_BASE:-0.0.0}"
@@ -52,8 +74,7 @@ jobs:
           fi
 
           NEXT="$(git tag -l "v$BASE-dev.*" | sed -nE "s/^v$BASE-dev\.([0-9]+)$/\1/p" | sort -n | tail -n 1)"
-          NEXT="$(( ${NEXT:-0} + 1 ))"
-          echo "version=$BASE-dev.$NEXT" >> "$GITHUB_OUTPUT"
+          echo "version=$BASE-dev.$(( ${NEXT:-0} + 1 ))" >> "$GITHUB_OUTPUT"
   publish:
     needs: resolve-version
     uses: ./.github/workflows/npm-publish.yml
@@ -62,8 +83,8 @@ jobs:
       version: ${{ needs.resolve-version.outputs.version }}
       npm_dist_tag: dev
       target_branch: dev
-      target_sha: ${{ github.event.pull_request.merge_commit_sha }}
-      source_branch: ${{ github.event.pull_request.head.ref }}
-      source_sha: ${{ github.event.pull_request.head.sha }}
+      target_sha: ${{ needs.resolve-version.outputs.target_sha }}
+      source_branch: ${{ needs.resolve-version.outputs.source_branch }}
+      source_sha: ${{ needs.resolve-version.outputs.source_sha }}
     secrets:
       npm_token: ${{ secrets.NPM_TOKEN }}
