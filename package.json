@@ -1,11 +1,16 @@
 {
   "name": "@talent-nexus/contracts",
-  "version": "0.0.1",
+  "version": "0.0.2-dev.0",
   "private": false,
+  "type": "module",
+  "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
     }
   },
   "files": [
@@ -17,5 +22,8 @@
   },
   "devDependencies": {
     "typescript": "^5.9.0"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
   }
 }

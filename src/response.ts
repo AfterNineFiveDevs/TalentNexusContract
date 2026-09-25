@@ -8,15 +8,8 @@ export interface PaginationMeta {
   hasPreviousPage: boolean;
 }
 
-/** A validation or domain error attached to an API error response. */
-export interface ApiErrorDetail {
-  /** A stable, application-defined error code. */
-  code: string;
-  /** Human-readable explanation of the error. */
-  message: string;
-  /** Optional field or property that caused the error. */
-  field?: string;
-}
+/** Field-specific validation messages keyed by dot-notated request paths. */
+export type ApiFieldErrors = Record<string, string>;
 
 /** Successful API envelope. */
 export interface ApiSuccessResponse<TData> {
@@ -29,7 +22,7 @@ export interface ApiSuccessResponse<TData> {
 export interface ApiErrorResponse {
   success: false;
   message: string;
-  errors?: ApiErrorDetail[];
+  errors?: ApiFieldErrors;
 }
 
 /** Standard API response envelope. */
