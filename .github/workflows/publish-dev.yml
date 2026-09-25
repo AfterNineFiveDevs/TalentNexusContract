@@ -56,6 +56,11 @@ jobs:
             fi
           done
 
+          if [[ -n "$BASE" ]] && git rev-parse -q --verify "refs/tags/v$BASE" >/dev/null; then
+            echo "The previous dev base $BASE is already stable; calculating a replacement base."
+            BASE=""
+          fi
+
           if [[ -z "$BASE" ]]; then
             PULLS="$(gh api "repos/$GITHUB_REPOSITORY/pulls?state=all&head=$GITHUB_REPOSITORY_OWNER:$SOURCE_BRANCH&base=dev&per_page=100")"
             LABELS="$(jq -c --arg sha "$SOURCE_SHA" '[.[] | select(.head.sha == $sha) | .labels[]?.name] | unique' <<< "$PULLS")"

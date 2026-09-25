@@ -45,6 +45,8 @@ The target-branch push workflow creates annotated Git tags and sets the package 
 
 The first dev PR for a feature branch uses its label to determine the major, minor, or patch base-version bump from the highest released base version, including dev and staging prereleases. Later dev PRs from that branch retain the first base version and only increment its numeric prerelease suffix: `X.Y.Z-dev.1`, `X.Y.Z-dev.2`, and so on. The matching staging and stable publications retain that same base version.
 
+If another feature publishes that base to `main` first, the locked base is closed. Add a new release label to the feature PR and run the dev recovery workflow for its original merge commit. The workflow creates a replacement base; for example, `1.0.0-dev.1` with `release:patch` becomes `1.0.1-dev.1`.
+
 Each release tag records its source branch and the second parent of the local merge commit. This is how the staging and main workflows verify that the feature has passed through the prior environment without merging environment branches back into the feature branch.
 
 The release workflow explicitly assigns the npm dist-tag after publishing, including on a retry. Therefore `npm install @talent-nexus/contracts@dev`, `@pre`, and the unqualified package name resolve to the version for their respective channel.
