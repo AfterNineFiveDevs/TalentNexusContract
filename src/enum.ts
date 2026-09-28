@@ -1,5 +1,11 @@
 export enum Role {
-   Admin = "Admin",
-   Talent = "Talent",
-   Recruiter = "Recruiter",
+	Admin = 'ADMIN',
+	Talent = 'TALENT',
+	Recruiter = 'RECRUITER',
+}
+
+export enum SignUpMethod {
+	Email = 'EMAIL',
+	Google = 'GOOGLE',
+	LinkedIn = 'LinkedIn',
 }
