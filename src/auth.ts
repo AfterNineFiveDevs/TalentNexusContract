@@ -1,11 +1,23 @@
 import { z } from 'zod';
+import { Role } from './enum.js';
+
+export const authenticatedUserSchema = z.object({
+	id: z.uuid(),
+	email: z.email(),
+	role: z.enum(Role),
+});
+
+/** A safe, authenticated identity attached to a request by an auth guard. */
+export type AuthenticatedUser = z.infer<typeof authenticatedUserSchema>;
 
 // #region Login
 export const loginRequestSchema = z.object({
-	username: z
-		.string({ error: 'Username is required' })
+	email: z
+		.string({ error: 'Email is required' })
 		.trim()
-		.min(1, 'Username is required'),
+		.toLowerCase()
+		.email('Invalid email format')
+		.max(255, 'Email is too long'),
 	password: z
 		.string({ error: 'Password is required' })
 		.min(1, 'Password is required'),
@@ -21,6 +33,9 @@ export class LoginRequestDto {
 
 export const loginResponseSchema = z.object({
 	access_token: z.string(),
+	id: z.uuid(),
+	email: z.email(),
+	role: z.enum(Role),
 });
 
 export type LoginResponse = z.infer<typeof loginResponseSchema>;
