@@ -1,6 +1,6 @@
 {
   "name": "@talent-nexus/contracts",
-  "version": "1.0.0",
+  "version": "1.0.3-dev.4",
   "private": false,
   "type": "module",
   "main": "./dist/index.js",
