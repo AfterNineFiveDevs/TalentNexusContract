@@ -74,6 +74,21 @@ export interface RefreshResponseDto extends RefreshResponse {}
 export class RefreshResponseDto {
 	static readonly schema = refreshResponseSchema;
 }
+
+export const googleAuthRequestSchema = z.object({
+	credential: z
+		.string({ error: 'Google credential is required' })
+		.trim()
+		.min(1, 'Google credential is required'),
+});
+
+export type GoogleAuthRequest = z.infer<typeof googleAuthRequestSchema>;
+
+export interface GoogleAuthRequestDto extends GoogleAuthRequest {}
+
+export class GoogleAuthRequestDto {
+	static readonly schema = googleAuthRequestSchema;
+}
 // #endregion
 
 // #region SignUp
@@ -94,9 +109,6 @@ export const signupRequestSchema = z
 		confirmPassword: z
 			.string({ error: 'Confirm password is required' })
 			.min(1, 'Please confirm your password'),
-		termsAccepted: z.literal(true, {
-			error: 'You must accept the terms and conditions',
-		}),
 	})
 	.refine((data) => data.password === data.confirmPassword, {
 		message: 'Passwords do not match',
