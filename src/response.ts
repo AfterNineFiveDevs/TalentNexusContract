@@ -19,6 +19,8 @@ export const API_ERROR_MESSAGES = {
   INVALID_CREDENTIALS: 'Invalid username or password',
   JWT_EXPIRED: 'JWT expired',
   JWT_INVALID: 'Invalid JWT',
+  GOOGLE_AUTH_INVALID: 'Invalid Google credential',
+  GOOGLE_ACCOUNT_LINK_CONFLICT: 'Google account link conflict',
   REFRESH_TOKEN_INVALID: 'Invalid refresh token',
   REFRESH_TOKEN_EXPIRED: 'Refresh token expired',
   REFRESH_TOKEN_REUSED: 'Refresh token reused',
