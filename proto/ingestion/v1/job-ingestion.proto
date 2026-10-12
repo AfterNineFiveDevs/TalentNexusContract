@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package talentnexus.ingestion.v1;
+
+service JobIngestionService {
+  rpc IngestJobs(IngestJobsRequest)
+  returns (IngestJobsResponse);
+}
+
+message IngestJobsRequest {
+  string              source_id = 1;
+  repeated ScrapedJob jobs      = 2;
+}
+
+message ScrapedJob {
+  string          external_id     = 1;
+  string          source_url      = 2;
+  string          title           = 3;
+  string          company_name    = 4;
+  string          description     = 5;
+  string          location        = 6;
+  repeated string application_url = 7;
+}
+
+message IngestJobsResponse {
+  int32 received = 1;
+}

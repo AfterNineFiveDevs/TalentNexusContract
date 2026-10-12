@@ -1,29 +1,37 @@
 {
-  "name": "@talent-nexus/contracts",
-  "version": "1.0.3-dev.6",
-  "private": false,
-  "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "default": "./dist/index.js"
-    }
-  },
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "build": "tsc",
-    "prepublishOnly": "npm run build"
-  },
-  "devDependencies": {
-    "typescript": "^5.9.0"
-  },
-  "dependencies": {
-    "zod": "^4.6.5"
-  }
+	"name": "@talent-nexus/contracts",
+	"version": "1.0.3-dev.6",
+	"private": false,
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.js",
+			"default": "./dist/index.js"
+		},
+		"./grpc": {
+			"types": "./dist/grpc/index.d.ts",
+			"import": "./dist/grpc/index.js",
+			"default": "./dist/grpc/index.js"
+		},
+		"./proto/*": "./proto/*"
+	},
+	"files": [
+		"dist",
+		"proto"
+	],
+	"scripts": {
+		"build": "tsc",
+		"prepublishOnly": "npm run build"
+	},
+	"devDependencies": {
+		"ts-proto": "^2.13.3",
+		"typescript": "^5.9.0"
+	},
+	"dependencies": {
+		"zod": "^4.6.5"
+	}
 }
