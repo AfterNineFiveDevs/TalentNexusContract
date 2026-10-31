@@ -403,3 +403,29 @@ response types.
 Update this guide alongside changed exports or endpoint behavior. Deployment timing
 and published versions are environment-specific; check the installed package and
 the API's deployed Swagger documentation when integrating.
+
+
+<details>
+<summary><strong>Administrator authentication</strong></summary>
+
+Use the admin DTOs and schemas exported from `admin-auth.ts`. The ordinary login
+response's ADMIN role alone does not authorize admin API requests. Staff sign in
+through `/api/v1/admin/auth/login`, complete the returned MFA step, and use its
+`access_token`. Admin refresh uses a separate HttpOnly cookie and an eight-hour
+absolute session limit.
+
+`adminNextStepSchema` validates restricted challenges; `adminEnrollmentSchema`
+validates the setup secret/URI; `adminEnrollmentCompleteSchema` validates the first
+MFA session plus ten recovery codes; `adminSessionResponseSchema` validates later
+sessions. Use `adminInviteSchema`, `adminAcceptInvitationSchema`,
+`adminMfaVerifySchema`, `adminRecoveryVerifySchema` and
+`adminReauthenticateSchema` for forms. MFA proof is always a string, including
+leading zeros. New staff require password confirmation; existing users accept
+using their current password and retain their account data.
+
+See the [backend integration guide](../services/api/docs/admin-auth.md) for the
+endpoint sequence, invitations, account conversion, safe lists, error handling,
+operator recovery and deployment prerequisites. These exports require a matching
+published contracts release; a local build does not publish them.
+
+</details>
