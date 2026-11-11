@@ -21,7 +21,8 @@
 	},
 	"files": [
 		"dist",
-		"proto"
+		"proto",
+		"README.md"
 	],
 	"scripts": {
 		"build": "tsc",
