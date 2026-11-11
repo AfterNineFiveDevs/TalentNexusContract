@@ -1,10 +1,14 @@
 export {
-	IngestJobsRequest,
-	IngestJobsResponse,
-	ScrapedJob,
+  WorkerRequest,
+  WorkerResponse,
+  IngestJobsRequest,
+  IngestJobsResponse,
+  ScrapedJob,
 } from '../generated/grpc/ingestion/v1/job-ingestion.js';
 export type {
-	IngestJobsRequest as IngestJobsRequestType,
-	IngestJobsResponse as IngestJobsResponseType,
-	ScrapedJob as ScrapedJobType,
+  WorkerRequest as WorkerRequestType,
+  WorkerResponse as WorkerResponseType,
+  IngestJobsRequest as IngestJobsRequestType,
+  IngestJobsResponse as IngestJobsResponseType,
+  ScrapedJob as ScrapedJobType,
 } from '../generated/grpc/ingestion/v1/job-ingestion.js';

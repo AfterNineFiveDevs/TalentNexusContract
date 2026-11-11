@@ -12,6 +12,9 @@ export const protobufPackage = "talentnexus.ingestion.v1";
 export interface IngestJobsRequest {
   sourceId: string;
   jobs: ScrapedJob[];
+  runId?: string | undefined;
+  leaseToken?: string | undefined;
+  batchId?: string | undefined;
 }
 
 export interface ScrapedJob {
@@ -26,10 +29,25 @@ export interface ScrapedJob {
 
 export interface IngestJobsResponse {
   received: number;
+  created?: number | undefined;
+  updated?: number | undefined;
+  observed?: number | undefined;
+}
+
+export interface WorkerRequest {
+  workerId: string;
+  sourceIds: string[];
+  runId?: string | undefined;
+  leaseToken?: string | undefined;
+  payloadJson: string;
+}
+
+export interface WorkerResponse {
+  payloadJson: string;
 }
 
 function createBaseIngestJobsRequest(): IngestJobsRequest {
-  return { sourceId: "", jobs: [] };
+  return { sourceId: "", jobs: [], runId: undefined, leaseToken: undefined, batchId: undefined };
 }
 
 export const IngestJobsRequest: MessageFns<IngestJobsRequest> = {
@@ -39,6 +57,15 @@ export const IngestJobsRequest: MessageFns<IngestJobsRequest> = {
     }
     for (const v of message.jobs) {
       ScrapedJob.encode(v!, writer.uint32(18).fork()).join();
+    }
+    if (message.runId !== undefined) {
+      writer.uint32(26).string(message.runId);
+    }
+    if (message.leaseToken !== undefined) {
+      writer.uint32(34).string(message.leaseToken);
+    }
+    if (message.batchId !== undefined) {
+      writer.uint32(42).string(message.batchId);
     }
     return writer;
   },
@@ -72,6 +99,30 @@ export const IngestJobsRequest: MessageFns<IngestJobsRequest> = {
             message.jobs.push(ScrapedJob.decode(reader, reader.uint32()));
             continue;
           }
+          case 3: {
+            if (tag !== 26) {
+              break;
+            }
+
+            message.runId = reader.string();
+            continue;
+          }
+          case 4: {
+            if (tag !== 34) {
+              break;
+            }
+
+            message.leaseToken = reader.string();
+            continue;
+          }
+          case 5: {
+            if (tag !== 42) {
+              break;
+            }
+
+            message.batchId = reader.string();
+            continue;
+          }
         }
         if ((tag & 7) === 4 || tag === 0) {
           break;
@@ -92,6 +143,21 @@ export const IngestJobsRequest: MessageFns<IngestJobsRequest> = {
         ? globalThis.String(object.source_id)
         : "",
       jobs: globalThis.Array.isArray(object?.jobs) ? object.jobs.map((e: any) => ScrapedJob.fromJSON(e)) : [],
+      runId: isSet(object.runId)
+        ? globalThis.String(object.runId)
+        : isSet(object.run_id)
+        ? globalThis.String(object.run_id)
+        : undefined,
+      leaseToken: isSet(object.leaseToken)
+        ? globalThis.String(object.leaseToken)
+        : isSet(object.lease_token)
+        ? globalThis.String(object.lease_token)
+        : undefined,
+      batchId: isSet(object.batchId)
+        ? globalThis.String(object.batchId)
+        : isSet(object.batch_id)
+        ? globalThis.String(object.batch_id)
+        : undefined,
     };
   },
 
@@ -103,6 +169,15 @@ export const IngestJobsRequest: MessageFns<IngestJobsRequest> = {
     if (message.jobs?.length) {
       obj.jobs = message.jobs.map((e) => ScrapedJob.toJSON(e));
     }
+    if (message.runId !== undefined) {
+      obj.runId = message.runId;
+    }
+    if (message.leaseToken !== undefined) {
+      obj.leaseToken = message.leaseToken;
+    }
+    if (message.batchId !== undefined) {
+      obj.batchId = message.batchId;
+    }
     return obj;
   },
 
@@ -113,6 +188,9 @@ export const IngestJobsRequest: MessageFns<IngestJobsRequest> = {
     const message = createBaseIngestJobsRequest();
     message.sourceId = object.sourceId ?? "";
     message.jobs = object.jobs?.map((e) => ScrapedJob.fromPartial(e)) || [];
+    message.runId = object.runId ?? undefined;
+    message.leaseToken = object.leaseToken ?? undefined;
+    message.batchId = object.batchId ?? undefined;
     return message;
   },
 };
@@ -307,13 +385,22 @@ export const ScrapedJob: MessageFns<ScrapedJob> = {
 };
 
 function createBaseIngestJobsResponse(): IngestJobsResponse {
-  return { received: 0 };
+  return { received: 0, created: undefined, updated: undefined, observed: undefined };
 }
 
 export const IngestJobsResponse: MessageFns<IngestJobsResponse> = {
   encode(message: IngestJobsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.received !== 0) {
       writer.uint32(8).int32(message.received);
+    }
+    if (message.created !== undefined) {
+      writer.uint32(16).int32(message.created);
+    }
+    if (message.updated !== undefined) {
+      writer.uint32(24).int32(message.updated);
+    }
+    if (message.observed !== undefined) {
+      writer.uint32(32).int32(message.observed);
     }
     return writer;
   },
@@ -339,6 +426,30 @@ export const IngestJobsResponse: MessageFns<IngestJobsResponse> = {
             message.received = reader.int32();
             continue;
           }
+          case 2: {
+            if (tag !== 16) {
+              break;
+            }
+
+            message.created = reader.int32();
+            continue;
+          }
+          case 3: {
+            if (tag !== 24) {
+              break;
+            }
+
+            message.updated = reader.int32();
+            continue;
+          }
+          case 4: {
+            if (tag !== 32) {
+              break;
+            }
+
+            message.observed = reader.int32();
+            continue;
+          }
         }
         if ((tag & 7) === 4 || tag === 0) {
           break;
@@ -352,13 +463,27 @@ export const IngestJobsResponse: MessageFns<IngestJobsResponse> = {
   },
 
   fromJSON(object: any): IngestJobsResponse {
-    return { received: isSet(object.received) ? globalThis.Number(object.received) : 0 };
+    return {
+      received: isSet(object.received) ? globalThis.Number(object.received) : 0,
+      created: isSet(object.created) ? globalThis.Number(object.created) : undefined,
+      updated: isSet(object.updated) ? globalThis.Number(object.updated) : undefined,
+      observed: isSet(object.observed) ? globalThis.Number(object.observed) : undefined,
+    };
   },
 
   toJSON(message: IngestJobsResponse): unknown {
     const obj: any = {};
     if (message.received !== 0) {
       obj.received = Math.round(message.received);
+    }
+    if (message.created !== undefined) {
+      obj.created = Math.round(message.created);
+    }
+    if (message.updated !== undefined) {
+      obj.updated = Math.round(message.updated);
+    }
+    if (message.observed !== undefined) {
+      obj.observed = Math.round(message.observed);
     }
     return obj;
   },
@@ -369,6 +494,235 @@ export const IngestJobsResponse: MessageFns<IngestJobsResponse> = {
   fromPartial<I extends Exact<DeepPartial<IngestJobsResponse>, I>>(object: I): IngestJobsResponse {
     const message = createBaseIngestJobsResponse();
     message.received = object.received ?? 0;
+    message.created = object.created ?? undefined;
+    message.updated = object.updated ?? undefined;
+    message.observed = object.observed ?? undefined;
+    return message;
+  },
+};
+
+function createBaseWorkerRequest(): WorkerRequest {
+  return { workerId: "", sourceIds: [], runId: undefined, leaseToken: undefined, payloadJson: "" };
+}
+
+export const WorkerRequest: MessageFns<WorkerRequest> = {
+  encode(message: WorkerRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.workerId !== "") {
+      writer.uint32(10).string(message.workerId);
+    }
+    for (const v of message.sourceIds) {
+      writer.uint32(18).string(v!);
+    }
+    if (message.runId !== undefined) {
+      writer.uint32(26).string(message.runId);
+    }
+    if (message.leaseToken !== undefined) {
+      writer.uint32(34).string(message.leaseToken);
+    }
+    if (message.payloadJson !== "") {
+      writer.uint32(42).string(message.payloadJson);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): WorkerRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const previousRecursionDepth = (reader as any).__tsProtoDecodeDepth ?? 0;
+    if (previousRecursionDepth >= 100) {
+      throw new globalThis.Error("protobuf decode recursion limit exceeded");
+    }
+    (reader as any).__tsProtoDecodeDepth = previousRecursionDepth + 1;
+    try {
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseWorkerRequest();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
+
+            message.workerId = reader.string();
+            continue;
+          }
+          case 2: {
+            if (tag !== 18) {
+              break;
+            }
+
+            message.sourceIds.push(reader.string());
+            continue;
+          }
+          case 3: {
+            if (tag !== 26) {
+              break;
+            }
+
+            message.runId = reader.string();
+            continue;
+          }
+          case 4: {
+            if (tag !== 34) {
+              break;
+            }
+
+            message.leaseToken = reader.string();
+            continue;
+          }
+          case 5: {
+            if (tag !== 42) {
+              break;
+            }
+
+            message.payloadJson = reader.string();
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    } finally {
+      (reader as any).__tsProtoDecodeDepth = previousRecursionDepth;
+    }
+  },
+
+  fromJSON(object: any): WorkerRequest {
+    return {
+      workerId: isSet(object.workerId)
+        ? globalThis.String(object.workerId)
+        : isSet(object.worker_id)
+        ? globalThis.String(object.worker_id)
+        : "",
+      sourceIds: globalThis.Array.isArray(object?.sourceIds)
+        ? object.sourceIds.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.source_ids)
+        ? object.source_ids.map((e: any) => globalThis.String(e))
+        : [],
+      runId: isSet(object.runId)
+        ? globalThis.String(object.runId)
+        : isSet(object.run_id)
+        ? globalThis.String(object.run_id)
+        : undefined,
+      leaseToken: isSet(object.leaseToken)
+        ? globalThis.String(object.leaseToken)
+        : isSet(object.lease_token)
+        ? globalThis.String(object.lease_token)
+        : undefined,
+      payloadJson: isSet(object.payloadJson)
+        ? globalThis.String(object.payloadJson)
+        : isSet(object.payload_json)
+        ? globalThis.String(object.payload_json)
+        : "",
+    };
+  },
+
+  toJSON(message: WorkerRequest): unknown {
+    const obj: any = {};
+    if (message.workerId !== "") {
+      obj.workerId = message.workerId;
+    }
+    if (message.sourceIds?.length) {
+      obj.sourceIds = message.sourceIds;
+    }
+    if (message.runId !== undefined) {
+      obj.runId = message.runId;
+    }
+    if (message.leaseToken !== undefined) {
+      obj.leaseToken = message.leaseToken;
+    }
+    if (message.payloadJson !== "") {
+      obj.payloadJson = message.payloadJson;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<WorkerRequest>, I>>(base?: I): WorkerRequest {
+    return WorkerRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<WorkerRequest>, I>>(object: I): WorkerRequest {
+    const message = createBaseWorkerRequest();
+    message.workerId = object.workerId ?? "";
+    message.sourceIds = object.sourceIds?.map((e) => e) || [];
+    message.runId = object.runId ?? undefined;
+    message.leaseToken = object.leaseToken ?? undefined;
+    message.payloadJson = object.payloadJson ?? "";
+    return message;
+  },
+};
+
+function createBaseWorkerResponse(): WorkerResponse {
+  return { payloadJson: "" };
+}
+
+export const WorkerResponse: MessageFns<WorkerResponse> = {
+  encode(message: WorkerResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.payloadJson !== "") {
+      writer.uint32(10).string(message.payloadJson);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): WorkerResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const previousRecursionDepth = (reader as any).__tsProtoDecodeDepth ?? 0;
+    if (previousRecursionDepth >= 100) {
+      throw new globalThis.Error("protobuf decode recursion limit exceeded");
+    }
+    (reader as any).__tsProtoDecodeDepth = previousRecursionDepth + 1;
+    try {
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseWorkerResponse();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
+
+            message.payloadJson = reader.string();
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    } finally {
+      (reader as any).__tsProtoDecodeDepth = previousRecursionDepth;
+    }
+  },
+
+  fromJSON(object: any): WorkerResponse {
+    return {
+      payloadJson: isSet(object.payloadJson)
+        ? globalThis.String(object.payloadJson)
+        : isSet(object.payload_json)
+        ? globalThis.String(object.payload_json)
+        : "",
+    };
+  },
+
+  toJSON(message: WorkerResponse): unknown {
+    const obj: any = {};
+    if (message.payloadJson !== "") {
+      obj.payloadJson = message.payloadJson;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<WorkerResponse>, I>>(base?: I): WorkerResponse {
+    return WorkerResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<WorkerResponse>, I>>(object: I): WorkerResponse {
+    const message = createBaseWorkerResponse();
+    message.payloadJson = object.payloadJson ?? "";
     return message;
   },
 };

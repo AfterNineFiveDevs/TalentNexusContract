@@ -3,6 +3,9 @@ syntax = "proto3";
 package talentnexus.ingestion.v1;
 
 service JobIngestionService {
+  rpc ClaimWork(WorkerRequest) returns (WorkerResponse);
+  rpc RenewLease(WorkerRequest) returns (WorkerResponse);
+  rpc CompleteRun(WorkerRequest) returns (WorkerResponse);
   rpc IngestJobs(IngestJobsRequest)
   returns (IngestJobsResponse);
 }
@@ -10,6 +13,9 @@ service JobIngestionService {
 message IngestJobsRequest {
   string              source_id = 1;
   repeated ScrapedJob jobs      = 2;
+  optional string run_id = 3;
+  optional string lease_token = 4;
+  optional string batch_id = 5;
 }
 
 message ScrapedJob {
@@ -24,4 +30,16 @@ message ScrapedJob {
 
 message IngestJobsResponse {
   int32 received = 1;
+  optional int32 created = 2;
+  optional int32 updated = 3;
+  optional int32 observed = 4;
 }
+
+message WorkerRequest {
+  string worker_id = 1;
+  repeated string source_ids = 2;
+  optional string run_id = 3;
+  optional string lease_token = 4;
+  string payload_json = 5;
+}
+message WorkerResponse { string payload_json = 1; }

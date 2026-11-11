@@ -1,36 +1,63 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 export const jobStatusSchema = z.enum([
-  "PENDING",
-  "PUBLISHED",
-  "REJECTED",
-  "CLOSED",
+  'PENDING',
+  'PUBLISHED',
+  'REJECTED',
+  'CLOSED',
 ]);
 
-export const adminJobsQuerySchema = z.object({
-  deletion: z.enum(["active", "deleted", "all"]).default("active"),
-  location: z.string().trim().min(1).max(200).optional(),
-  title: z.string().trim().min(1).max(200).optional(),
-  companyName: z.string().trim().min(1).max(200).optional(),
-  sourceId: z.string().trim().min(1).max(100).optional(),
-  status: jobStatusSchema.optional(),
+export const adminJobsFilterSchema = z
+  .object({
+    deletion: z.enum(['active', 'deleted', 'all']).default('active'),
+    location: z.string().trim().min(1).max(200).optional(),
+    title: z.string().trim().min(1).max(200).optional(),
+    companyName: z.string().trim().min(1).max(200).optional(),
+    sourceId: z.string().trim().min(1).max(100).optional(),
+    status: jobStatusSchema.optional(),
+    categoryId: z.uuid().optional(),
+  })
+  .strict();
+export const adminJobsQuerySchema = adminJobsFilterSchema
+  .extend({
+    page: z.coerce.number().int().min(1).max(2_147_483_647).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
 
-  page: z.coerce.number().int().min(1).max(2_147_483_647).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
+    sortBy: z
+      .enum([
+        'createdAt',
+        'updatedAt',
+        'lastSeenAt',
+        'publishedAt',
+        'title',
+        'companyName',
+      ])
+      .default('createdAt'),
 
-  sortBy: z
-    .enum([
-      "createdAt",
-      "updatedAt",
-      "lastSeenAt",
-      "publishedAt",
-      "title",
-      "companyName",
-    ])
-    .default("createdAt"),
+    sortOrder: z.enum(['asc', 'desc']).default('desc'),
+  })
+  .strip();
 
-  sortOrder: z.enum(["asc", "desc"]).default("desc"),
+export type AdminJobsFilter = z.infer<typeof adminJobsFilterSchema>;
+export class AdminJobsFilterDto {
+  static readonly schema = adminJobsFilterSchema;
+}
+export interface AdminJobsFilterDto extends AdminJobsFilter {}
+
+export const adminJobsSummarySchema = z.object({
+  total: z.number().int().nonnegative(),
+  statusCounts: z.object({
+    PENDING: z.number().int().nonnegative(),
+    PUBLISHED: z.number().int().nonnegative(),
+    REJECTED: z.number().int().nonnegative(),
+    CLOSED: z.number().int().nonnegative(),
+  }),
 });
+export const adminJobSourcesSchema = z.array(
+  z.object({ sourceId: z.string(), count: z.number().int().nonnegative() }),
+);
+export type AdminJobsSummary = z.infer<typeof adminJobsSummarySchema>;
+export type AdminJobSources = z.infer<typeof adminJobSourcesSchema>;
 
 export type AdminJobsQuery = z.infer<typeof adminJobsQuerySchema>;
 
@@ -42,14 +69,14 @@ export class AdminJobsQueryDto {
 
 export type JobStatus = z.infer<typeof jobStatusSchema>;
 export const jobAdminActionSchema = z.enum([
-  "CREATE",
-  "EDIT",
-  "PUBLISH",
-  "REJECT",
-  "CLOSE",
-  "REOPEN",
-  "DELETE",
-  "RESTORE",
+  'CREATE',
+  'EDIT',
+  'PUBLISH',
+  'REJECT',
+  'CLOSE',
+  'REOPEN',
+  'DELETE',
+  'RESTORE',
 ]);
 export type JobAdminAction = z.infer<typeof jobAdminActionSchema>;
 
@@ -60,7 +87,7 @@ const httpUrl = z
   .url()
   .refine((value) => {
     return /^https?:\/\//i.test(value);
-  }, "Only HTTP and HTTPS URLs are allowed");
+  }, 'Only HTTP and HTTPS URLs are allowed');
 
 export const jobContentSchema = z.strictObject({
   title: z.string().trim().min(1).max(200),
@@ -69,13 +96,14 @@ export const jobContentSchema = z.strictObject({
   location: z.string().trim().min(1).max(200),
   sourceUrl: httpUrl,
   applicationUrl: z.array(httpUrl).max(20),
+  categoryId: z.uuid().nullable().optional(),
 });
 export type JobContent = z.infer<typeof jobContentSchema>;
 export const jobContentPatchSchema = jobContentSchema
   .partial()
   .refine(
     (value) => Object.values(value).some((field) => field !== undefined),
-    "Provide at least one content field",
+    'Provide at least one content field',
   );
 export type JobContentPatch = z.infer<typeof jobContentPatchSchema>;
 
@@ -135,6 +163,7 @@ export class JobIdParamsDto {
 
 // Timestamp strings are serialized by the API, not JavaScript Date objects.
 export interface AdminJobSummary {
+  categoryId: string | null;
   id: string;
   title: string;
   companyName: string;
@@ -165,6 +194,7 @@ export interface AdminJobDetail extends AdminJobSummary {
 }
 
 export const adminJobSummarySchema = z.object({
+  categoryId: z.uuid().nullable(),
   id: z.uuid(),
   title: z.string(),
   companyName: z.string(),

@@ -429,3 +429,70 @@ operator recovery and deployment prerequisites. These exports require a matching
 published contracts release; a local build does not publish them.
 
 </details>
+
+
+<details>
+<summary><strong>Categories, subscriptions, queue summaries and analytics</strong></summary>
+
+Use `createCategorySchema`, `updateCategorySchema`, `categoryVersionSchema`,
+`adminCategoriesQuerySchema` and `categoryPaginationSchema` for forms and list
+state. The matching DTOs, inferred request/response types and response schemas
+are exported by the package. Admin category mutations require `expectedVersion`.
+
+Jobs now return nullable `categoryId` and accept it in creation/edit/publish
+content. Omission preserves assignments; null clears them. Imported jobs remain
+uncategorized. `adminJobsFilterSchema` is shared by queue summaries and source
+counts; it excludes list pagination and sorting parameters.
+
+`publicCategorySchema` contains safe public catalog fields. Own subscriptions
+use `categorySubscriptionSchema`, including retained hidden/archived status.
+Subscriber identities use `categorySubscriberSchema` and require admin MFA.
+Subscriptions store interest only; no notification delivery is implied.
+
+`adminAnalyticsQuerySchema` accepts only periods 7, 30 and 90.
+`adminAnalyticsOverviewSchema` distinguishes real candidate/first-publication counts
+from unavailable activity metrics. Do not display null unavailable metrics as zero.
+See [the integration guide](../services/api/docs/admin-dashboard.md) for endpoints,
+Yangon calendar boundaries, status behavior, errors and rollout prerequisites.
+New exports require a matching published package; local builds do not publish it.
+
+</details>
+# Crawler scheduling contracts
+
+<details>
+<summary>Admin source schedules, Run Now, run history, and worker boundaries</summary>
+
+Backend implementation is local; install a matching published contracts version
+before consuming these exports. Frontend screens are not implemented.
+
+| Task | Schema / DTO |
+| --- | --- |
+| Source settings form | `updateCrawlerSourceSchema` / `UpdateCrawlerSourceDto` |
+| Weekly or every-N-hours selector | `crawlerScheduleSchema` |
+| Source response validation | `crawlerSourceSchema` (list data is an array) |
+| Run response validation | `crawlerRunSchema` |
+| Run-history query | `crawlerPaginationSchema` / `CrawlerPaginationDto` |
+| Run Now request | `CrawlerRunNowDto` (empty object) |
+
+Response types are `CrawlerSource`, `CrawlerRun`, `CrawlerCounts`, and
+`CrawlerFailure`; use `ApiPaginatedResponse<CrawlerRun>` for run history.
+
+Source endpoints live under `/api/v1/admin/crawler/sources`. Weekly example:
+`{ kind: 'weekly', weekdays: [1, 4], time: '09:00' }` (Sunday=0).
+Interval example: `{ kind: 'interval', hours: 6 }`. Timezone defaults to
+`Asia/Yangon`; weekly time is local, interval hours are elapsed time.
+
+PATCH needs `expectedVersion`. Send `enabled` alone with that version to pause
+or resume without resetting the schedule. A schedule/timezone edit recalculates
+the next due time. Run Now returns 202 and a queued run, even for a paused source;
+409 means an active/queued run already exists or a configuration version is stale.
+
+Only `myjobs` is registered initially. Sources are not arbitrary website URLs.
+`workerAvailable` means a recent heartbeat, not confirmed upstream availability.
+Use the existing success and pagination envelopes. No worker secret or lease token
+belongs in browser code. gRPC control and ingestion are worker-only.
+
+See the [complete API guide](../services/api/docs/admin-crawler.md) for all routes,
+response counts, transition semantics, and rollout prerequisites.
+
+</details>
