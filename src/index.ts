@@ -8,3 +8,4 @@ export * from './admin-auth.js';
 export * from './category.js';
 export * from './admin-analytics.js';
 export * from './crawler.js';
+export * from './profile.js';
