@@ -89,6 +89,22 @@ export interface GoogleAuthRequestDto extends GoogleAuthRequest {}
 export class GoogleAuthRequestDto {
 	static readonly schema = googleAuthRequestSchema;
 }
+
+export const linkedinAuthRequestSchema = z.object({
+	code: z
+		.string({ error: 'LinkedIn authorization code is required' })
+		.trim()
+		.min(1, 'LinkedIn authorization code is required'),
+	redirectUri: z.url({ error: 'Redirect URI must be a valid URL' }),
+});
+
+export type LinkedinAuthRequest = z.infer<typeof linkedinAuthRequestSchema>;
+
+export interface LinkedinAuthRequestDto extends LinkedinAuthRequest {}
+
+export class LinkedinAuthRequestDto {
+	static readonly schema = linkedinAuthRequestSchema;
+}
 // #endregion
 
 // #region SignUp
